@@ -1,0 +1,83 @@
+/* Ensure full height layout */
+:host {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Custom scrollbar for chat area */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Smooth scroll behavior */
+.overflow-y-auto {
+  scroll-behavior: smooth;
+}
+
+/* Message animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading spinner customization */
+:host ::ng-deep .mat-spinner circle {
+  stroke: #6b7280 !important;
+}
+
+/* Chip styling */
+:host ::ng-deep .mat-chip {
+  font-size: 0.75rem !important;
+  min-height: 24px !important;
+  padding: 4px 8px !important;
+}
+
+:host ::ng-deep .mat-chip mat-icon {
+  font-size: 16px !important;
+  height: 16px !important;
+  width: 16px !important;
+  margin-right: 4px !important;
+}
+
+/* Input field focus */
+:host ::ng-deep .mat-form-field-appearance-outline.mat-focused .mat-form-field-outline-thick {
+  color: #3b82f6 !important;
+}
+
+/* Button hover effects */
+button[mat-stroked-button]:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Message bubble shadows */
+.shadow-sm {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .max-w-\[70\%\] {
+    max-width: 85%;
+  }
+}

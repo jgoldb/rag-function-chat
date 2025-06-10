@@ -1,0 +1,106 @@
+<div class="flex flex-col h-screen bg-gray-50">
+  <!-- Header -->
+  <mat-toolbar color="primary" class="flex-shrink-0">
+    <span class="flex-1">RAG & Function Calling Demo</span>
+    <div class="flex items-center gap-4">
+      <mat-slide-toggle [(ngModel)]="ragEnabled" color="accent">
+        RAG
+      </mat-slide-toggle>
+      <mat-slide-toggle [(ngModel)]="functionsEnabled" color="accent">
+        Functions
+      </mat-slide-toggle>
+      <button mat-icon-button (click)="clearChat()" matTooltip="Clear chat">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
+  </mat-toolbar>
+
+  <!-- Suggestions -->
+  <div class="p-4 bg-white border-b flex-shrink-0">
+    <p class="text-sm text-gray-600 mb-2">Try these examples:</p>
+    <div class="flex flex-wrap gap-2">
+      <button
+        *ngFor="let suggestion of suggestions"
+        mat-stroked-button
+        color="primary"
+        class="text-sm"
+        (click)="useSuggestion(suggestion)">
+        {{ suggestion }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat Messages -->
+  <div #scrollContainer class="flex-1 overflow-y-auto p-4 space-y-4">
+    <div *ngFor="let message of messages"
+         class="flex"
+         [ngClass]="{'justify-end': message.role === 'user', 'justify-start': message.role !== 'user'}">
+
+      <div class="max-w-[70%]">
+        <!-- Message bubble -->
+        <div class="rounded-lg p-4 shadow-sm"
+             [ngClass]="{
+               'bg-blue-500 text-white': message.role === 'user',
+               'bg-white': message.role === 'assistant',
+               'bg-gray-100': message.role === 'function'
+             }">
+
+          <!-- Loading indicator -->
+          <div *ngIf="message.isLoading" class="flex items-center space-x-2">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span class="text-gray-600">Thinking...</span>
+          </div>
+
+          <!-- Message content -->
+          <div *ngIf="!message.isLoading" class="whitespace-pre-wrap">
+            {{ message.content }}
+          </div>
+
+          <!-- Metadata badges -->
+          <div *ngIf="message.metadata" class="mt-2 flex flex-wrap gap-2">
+            <mat-chip *ngIf="message.metadata.functionCall" color="accent" selected>
+              <mat-icon class="text-xs">functions</mat-icon>
+              {{ message.metadata.functionCall }}
+            </mat-chip>
+            <mat-chip *ngIf="message.metadata.ragData" color="primary" selected>
+              <mat-icon class="text-xs">cloud</mat-icon>
+              RAG Data Used
+            </mat-chip>
+          </div>
+        </div>
+
+        <!-- Timestamp -->
+        <div class="text-xs text-gray-500 mt-1 px-2"
+             [ngClass]="{'text-right': message.role === 'user'}">
+          {{ message.timestamp | date:'short' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input Area -->
+  <div class="p-4 bg-white border-t flex-shrink-0">
+    <form (ngSubmit)="sendMessage()" class="flex gap-2">
+      <mat-form-field class="flex-1" appearance="outline">
+        <mat-label>Type your message...</mat-label>
+        <input
+          matInput
+          [formControl]="inputControl"
+          autocomplete="off">
+        <mat-hint>
+          <span *ngIf="ragEnabled" class="text-green-600">RAG enabled</span>
+          <span *ngIf="ragEnabled && functionsEnabled" class="mx-1">•</span>
+          <span *ngIf="functionsEnabled" class="text-blue-600">Functions enabled</span>
+        </mat-hint>
+      </mat-form-field>
+
+      <button
+        mat-fab
+        color="primary"
+        type="submit"
+        [disabled]="!inputControl.value?.trim() || isLoading">
+        <mat-icon>send</mat-icon>
+      </button>
+    </form>
+  </div>
+</div>
