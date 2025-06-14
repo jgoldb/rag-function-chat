@@ -81,3 +81,57 @@ button[mat-stroked-button]:hover {
     max-width: 85%;
   }
 }
+
+/* Microphone button animation */
+.mic-button {
+  transition: all 0.3s ease;
+}
+
+.mic-button:hover {
+  transform: scale(1.05);
+}
+
+/* Pulsing animation for active recording */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+  }
+}
+
+:host ::ng-deep .mic-button.mat-warn {
+  animation: pulse 1.5s infinite;
+}
+
+/* Animate pulse class from Tailwind */
+@keyframes pulse-text {
+  50% {
+    opacity: .5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse-text 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Auto-send animation */
+@keyframes sendPrepare {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+:host ::ng-deep .mat-form-field.sending-soon .mat-form-field-wrapper {
+  animation: sendPrepare 0.3s ease-in-out;
+}

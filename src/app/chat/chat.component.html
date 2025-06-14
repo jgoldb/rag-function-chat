@@ -9,6 +9,9 @@
       <mat-slide-toggle [(ngModel)]="functionsEnabled" color="accent">
         Functions
       </mat-slide-toggle>
+      <mat-slide-toggle [(ngModel)]="autoSendEnabled" color="accent" matTooltip="Automatically send message after speaking">
+        Auto-send
+      </mat-slide-toggle>
       <button mat-icon-button (click)="clearChat()" matTooltip="Clear chat">
         <mat-icon>delete</mat-icon>
       </button>
@@ -82,17 +85,33 @@
   <div class="p-4 bg-white border-t flex-shrink-0">
     <form (ngSubmit)="sendMessage()" class="flex gap-2">
       <mat-form-field class="flex-1" appearance="outline">
-        <mat-label>Type your message...</mat-label>
+        <mat-label>{{ isListening ? 'Listening...' : 'Type your message...' }}</mat-label>
         <input
           matInput
           [formControl]="inputControl"
-          autocomplete="off">
+          autocomplete="off"
+          [value]="isListening && interimTranscript ? interimTranscript : inputControl.value">
         <mat-hint>
           <span *ngIf="ragEnabled" class="text-green-600">RAG enabled</span>
           <span *ngIf="ragEnabled && functionsEnabled" class="mx-1">•</span>
           <span *ngIf="functionsEnabled" class="text-blue-600">Functions enabled</span>
+          <span *ngIf="isListening" class="mx-1">•</span>
+          <span *ngIf="isListening" class="text-red-600 animate-pulse">🎤 Listening...</span>
+          <span *ngIf="autoSendEnabled && speechSupported" class="mx-1">•</span>
+          <span *ngIf="autoSendEnabled && speechSupported" class="text-purple-600">Auto-send on</span>
         </mat-hint>
       </mat-form-field>
+
+      <button
+        mat-fab
+        [color]="isListening ? 'warn' : 'accent'"
+        type="button"
+        (click)="toggleDictation()"
+        [disabled]="isLoading"
+        [matTooltip]="isListening ? 'Click to stop' : (autoSendEnabled ? 'Click to speak (auto-send enabled)' : 'Click to speak')"
+        class="mic-button">
+        <mat-icon>{{ isListening ? 'mic' : 'mic_none' }}</mat-icon>
+      </button>
 
       <button
         mat-fab

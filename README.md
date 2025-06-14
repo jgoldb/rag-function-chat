@@ -146,6 +146,24 @@ Navigate to `http://localhost:4200`
 - "What's the weather in London? Also, calculate my BMI if I'm 180cm and 75kg"
 - "I have $20,000 to invest. What's the weather like in New York? Calculate returns at 6% for 15 years"
 
+### Voice Input with Auto-Send
+1. **Enable Auto-send** toggle in the header (on by default)
+2. **Click the microphone** button
+3. **Speak your query** clearly
+4. **Stop speaking** - the message will automatically send after a brief pause
+5. **Or click the microphone again** to stop without auto-sending
+
+### Voice Input without Auto-Send
+1. **Disable Auto-send** toggle in the header
+2. **Click the microphone** and speak
+3. **Review the transcribed text** in the input field
+4. **Edit if needed**, then click send
+
+### Voice Input Examples
+- "What's the weather like in London?"
+- "Calculate the mortgage payment for a five hundred thousand dollar home"
+- "Show me compound interest on twenty thousand dollars at six percent"
+
 ## Architecture
 
 ### Services

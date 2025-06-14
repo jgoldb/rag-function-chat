@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked, NgZone, ChangeDetectorRef } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { OpenAIService, Message } from '../services/openai.service';
 import { WeatherService } from '../services/weather.service';
@@ -11,6 +11,23 @@ interface ChatMessage extends Message {
     functionCall?: string;
     ragData?: any;
   };
+}
+
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionError extends Event {
+  error: string;
+  message: string;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
 }
 
 @Component({
@@ -27,6 +44,13 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   ragEnabled = true;
   functionsEnabled = true;
 
+  // Speech recognition properties
+  isListening = false;
+  speechRecognition: any;
+  speechSupported = false;
+  interimTranscript = '';
+  autoSendEnabled = true; // New property for auto-send toggle
+
   // Demo suggestions
   suggestions = [
     'What\'s the weather like in London?',
@@ -37,7 +61,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   constructor(
     private openaiService: OpenAIService,
-    private weatherService: WeatherService
+    private weatherService: WeatherService,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -47,6 +73,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       content: 'Hello! I\'m a chat assistant with RAG (real-time weather data) and function calling capabilities. Try asking me about the weather in any city, or ask me to calculate compound interest or BMI!',
       timestamp: new Date()
     });
+
+    // Initialize speech recognition
+    this.initializeSpeechRecognition();
   }
 
   ngAfterViewChecked() {
@@ -57,6 +86,102 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     try {
       this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
     } catch(err) {}
+  }
+
+  private initializeSpeechRecognition() {
+    // Check if browser supports speech recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      this.speechSupported = true;
+      this.speechRecognition = new SpeechRecognition();
+
+      // Configure speech recognition
+      this.speechRecognition.continuous = false; // Stops after detecting pause
+      this.speechRecognition.interimResults = true;
+      this.speechRecognition.lang = 'en-US';
+      this.speechRecognition.maxAlternatives = 1;
+
+      // Handle speech recognition results
+      this.speechRecognition.onresult = (event: SpeechRecognitionEvent) => {
+        this.ngZone.run(() => {
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              this.interimTranscript = transcript;
+            }
+          }
+
+          if (finalTranscript) {
+            this.inputControl.setValue(finalTranscript);
+            this.interimTranscript = '';
+
+            // Auto-send if enabled and not currently loading
+            if (this.autoSendEnabled && !this.isLoading) {
+              // Small delay to show the final text before sending
+              setTimeout(() => {
+                this.ngZone.run(() => {
+                  this.sendMessage();
+                });
+              }, 300);
+            }
+          }
+        });
+      };
+
+      // Handle speech recognition end
+      this.speechRecognition.onend = () => {
+        this.ngZone.run(() => {
+          this.isListening = false;
+          this.interimTranscript = '';
+        });
+      };
+
+      // Handle errors
+      this.speechRecognition.onerror = (event: SpeechRecognitionError) => {
+        this.ngZone.run(() => {
+          console.error('Speech recognition error:', event.error);
+          this.isListening = false;
+          this.interimTranscript = '';
+
+          if (event.error === 'no-speech') {
+            // Silently stop - user didn't say anything
+          } else if (event.error === 'not-allowed') {
+            alert('Microphone access was denied. Please allow microphone access to use voice input.');
+          } else {
+            alert(`Speech recognition error: ${event.error}`);
+          }
+        });
+      };
+
+      // Handle no match
+      this.speechRecognition.onnomatch = () => {
+        this.ngZone.run(() => {
+          this.isListening = false;
+          this.interimTranscript = '';
+        });
+      };
+    }
+  }
+
+  toggleDictation() {
+    if (!this.speechSupported) {
+      alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    if (this.isListening) {
+      this.speechRecognition.stop();
+      this.isListening = false;
+    } else {
+      this.speechRecognition.start();
+      this.isListening = true;
+      this.interimTranscript = '';
+    }
   }
 
   async sendMessage() {
@@ -73,6 +198,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.inputControl.reset();
     this.isLoading = true;
     this.inputControl.disable();
+
+    // Force immediate UI update
+    this.cdr.detectChanges();
 
     // Prepare messages for API
     let apiMessages: Message[] = this.messages
@@ -107,11 +235,15 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     };
     this.messages.push(loadingMessage);
 
+    // Force immediate UI update for loading message
+    this.cdr.detectChanges();
+
     // Send to OpenAI
     this.openaiService.sendMessage(apiMessages, this.ragEnabled, this.functionsEnabled)
       .pipe(finalize(() => {
         this.isLoading = false;
         this.inputControl.enable();
+        this.cdr.detectChanges(); // Force change detection
       }))
       .subscribe({
         next: async (response) => {
@@ -156,6 +288,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
                   content: finalResponse.choices[0].message.content,
                   timestamp: new Date()
                 });
+                this.cdr.detectChanges(); // Force change detection
               },
               error: (error) => {
                 this.handleError(error);
@@ -176,6 +309,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
                   content: retryResponse.choices[0].message.content || 'I need to use functions to answer this question, but function calling is currently disabled. Please enable functions to get a precise calculation.',
                   timestamp: new Date()
                 });
+                this.cdr.detectChanges(); // Force change detection
               },
               error: (error) => {
                 this.handleError(error);
@@ -189,6 +323,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
               timestamp: new Date(),
               metadata: ragContext ? { ragData: ragContext } : undefined
             });
+            this.cdr.detectChanges(); // Force change detection
           }
         },
         error: (error) => {
